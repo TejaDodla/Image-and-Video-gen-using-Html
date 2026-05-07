@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Remix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .file-input {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .file-input:hover {
+            background-color: #e5e7eb;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container mx-auto p-6 bg-white rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Image Remix</h1>
+        <p class="text-center text-gray-600 mb-8">Upload two images and let the AI combine them based on your prompt.</p>
+
+        <!-- File Upload Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-2">Image 1</label>
+                <div class="file-input flex flex-col items-center justify-center" onclick="document.getElementById('file1').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-4-4m5-4a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                    <p class="text-gray-500">Click to upload or drag & drop</p>
+                    <input type="file" id="file1" class="hidden" accept="image/*">
+                </div>
+                <div id="preview1-container" class="mt-4 hidden text-center">
+                    <img id="preview1" class="image-preview mx-auto rounded-lg shadow-md" src="#" alt="Image 1 Preview">
+                    <p id="filename1" class="text-sm text-gray-500 mt-2"></p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-semibold mb-2">Image 2</label>
+                <div class="file-input flex flex-col items-center justify-center" onclick="document.getElementById('file2').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-4-4m5-4a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                    <p class="text-gray-500">Click to upload or drag & drop</p>
+                    <input type="file" id="file2" class="hidden" accept="image/*">
+                </div>
+                <div id="preview2-container" class="mt-4 hidden text-center">
+                    <img id="preview2" class="image-preview mx-auto rounded-lg shadow-md" src="#" alt="Image 2 Preview">
+                    <p id="filename2" class="text-sm text-gray-500 mt-2"></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Prompt and Generate Button -->
+        <div class="mb-6">
+            <label for="prompt" class="block text-gray-700 font-semibold mb-2">Prompt</label>
+            <textarea id="prompt" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow resize-none" placeholder="e.g., 'Make the person in the first picture wear the clothes from the second picture'"></textarea>
+        </div>
+        
+        <div class="text-center">
+            <button id="generateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Generate Image</button>
+        </div>
+
+        <!-- Generated Image Section -->
+        <div id="resultContainer" class="mt-8 hidden">
+            <h2 class="text-xl font-bold text-center text-gray-800 mb-4">Generated Image</h2>
+            <div id="loadingIndicator" class="text-center text-gray-500 hidden">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-2">Generating...</p>
+            </div>
+            <div id="generatedImageWrapper" class="relative rounded-lg overflow-hidden shadow-2xl">
+                <img id="generatedImage" class="w-full h-auto rounded-lg" src="#" alt="Generated Image">
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <p id="modal-message" class="text-gray-800 mb-4"></p>
+            <button id="modal-close" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput1 = document.getElementById('file1');
+        const fileInput2 = document.getElementById('file2');
+        const preview1 = document.getElementById('preview1');
+        const preview2 = document.getElementById('preview2');
+        const filename1 = document.getElementById('filename1');
+        const filename2 = document.getElementById('filename2');
+        const promptInput = document.getElementById('prompt');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const generatedImage = document.getElementById('generatedImage');
+        const preview1Container = document.getElementById('preview1-container');
+        const preview2Container = document.getElementById('preview2-container');
+        const modal = document.getElementById('modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalClose = document.getElementById('modal-close');
+
+        const apiKey = "";
+        const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent";
+
+        function showMessage(message) {
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
+
+        modalClose.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        function handleFileChange(event, previewElement, filenameElement, previewContainer) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                    filenameElement.textContent = file.name;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        fileInput1.addEventListener('change', (e) => handleFileChange(e, preview1, filename1, preview1Container));
+        fileInput2.addEventListener('change', (e) => handleFileChange(e, preview2, filename2, preview2Container));
+
+        async function dataURLtoBase64(dataURL) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const resizedDataURL = canvas.toDataURL('image/png');
+                    const base64 = resizedDataURL.split(',')[1];
+                    resolve(base64);
+                };
+                img.src = dataURL;
+            });
+        }
+        
+        generateBtn.addEventListener('click', async () => {
+            const file1 = fileInput1.files[0];
+            const file2 = fileInput2.files[0];
+            const promptText = promptInput.value;
+            
+            if (!file1 || !file2 || !promptText) {
+                showMessage("Please upload both images and enter a prompt.");
+                return;
+            }
+
+            resultContainer.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            generatedImage.classList.add('hidden');
+            
+            const reader1 = new FileReader();
+            reader1.onload = async function() {
+                const reader2 = new FileReader();
+                reader2.onload = async function() {
+                    try {
+                        const base64Image1 = await dataURLtoBase64(reader1.result);
+                        const base64Image2 = await dataURLtoBase64(reader2.result);
+
+                        const payload = {
+                            contents: [{
+                                parts: [
+                                    { text: promptText },
+                                    { inlineData: { mimeType: file1.type, data: base64Image1 } },
+                                    { inlineData: { mimeType: file2.type, data: base64Image2 } }
+                                ]
+                            }],
+                            generationConfig: {
+                                responseModalities: ['TEXT', 'IMAGE']
+                            }
+                        };
+                        
+                        let response, result;
+                        let retries = 0;
+                        const maxRetries = 5;
+                        const initialDelay = 1000;
+                        
+                        while(retries < maxRetries) {
+                            try {
+                                response = await fetch(apiUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                });
+                                
+                                if (response.status === 429) {
+                                    retries++;
+                                    const delay = initialDelay * Math.pow(2, retries);
+                                    await new Promise(resolve => setTimeout(resolve, delay));
+                                    continue;
+                                }
+                                
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+
+                                result = await response.json();
+                                break;
+                            } catch (error) {
+                                if (retries === maxRetries - 1) {
+                                    throw error;
+                                }
+                                retries++;
+                                const delay = initialDelay * Math.pow(2, retries);
+                                await new Promise(resolve => setTimeout(resolve, delay));
+                            }
+                        }
+
+                        if (!result || !result.candidates || result.candidates.length === 0) {
+                            throw new Error("No candidates returned from API.");
+                        }
+
+                        const generatedPart = result.candidates[0].content.parts.find(p => p.inlineData);
+                        if (!generatedPart || !generatedPart.inlineData || !generatedPart.inlineData.data) {
+                            throw new Error("No image data found in the response.");
+                        }
+
+                        const base64Data = generatedPart.inlineData.data;
+                        const imageUrl = `data:image/png;base64,${base64Data}`;
+                        
+                        generatedImage.src = imageUrl;
+                        loadingIndicator.classList.add('hidden');
+                        generatedImage.classList.remove('hidden');
+                        
+                    } catch (error) {
+                        loadingIndicator.classList.add('hidden');
+                        console.error('Error:', error);
+                        showMessage(`Failed to generate image: ${error.message}`);
+                    }
+                };
+                reader2.readAsDataURL(file2);
+            };
+            reader1.readAsDataURL(file1);
+        });
+    </script>
+</body>
+</html>
